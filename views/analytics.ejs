@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>URL Analytics</title>
+
+    <link
+        rel="stylesheet"
+        href="/style.css"
+    >
+
+</head>
+
+<body>
+
+    <div class="container">
+
+        <% if (error) { %>
+
+            <h1>
+                ❌ <%= error %>
+            </h1>
+
+            <a href="/">
+                Go Home
+            </a>
+
+        <% } else { %>
+
+            <h1>
+                📊 URL Analytics
+            </h1>
+
+            <!-- Original URL -->
+
+            <div class="card">
+
+                <h3>
+                    Original URL
+                </h3>
+
+                <a
+                    href="<%= entry.redirectURL %>"
+                    target="_blank"
+                >
+                    <%= entry.redirectURL %>
+                </a>
+
+            </div>
+
+
+            <!-- Short ID -->
+
+            <div class="card">
+
+                <h3>
+                    Short ID
+                </h3>
+
+                <p>
+                    <%= entry.shortId %>
+                </p>
+
+            </div>
+
+
+            <!-- Total Visits -->
+
+            <div class="card">
+
+                <h3>
+                    Total Visits
+                </h3>
+
+                <p class="visits">
+
+                    <%= entry.visitHistory.length %>
+
+                </p>
+
+            </div>
+
+
+            <!-- Visit History -->
+
+            <div class="card">
+
+                <h3>
+                    Visit History
+                </h3>
+
+                <% if (entry.visitHistory.length === 0) { %>
+
+                    <p>
+                        No visits yet.
+                    </p>
+
+                <% } else { %>
+
+                    <ul>
+
+                        <% entry.visitHistory.forEach((visit) => { %>
+
+                            <li>
+
+                                <%= new Date(
+                                    visit.timestamp
+                                ).toLocaleString() %>
+
+                            </li>
+
+                        <% }) %>
+
+                    </ul>
+
+                <% } %>
+
+            </div>
+
+
+            <br>
+
+            <a href="/">
+                ← Create another URL
+            </a>
+
+        <% } %>
+
+    </div>
+
+</body>
+
+</html>

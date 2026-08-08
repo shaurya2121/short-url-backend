@@ -4,23 +4,35 @@
 
 const express = require("express");
 
+// Create router
 const router = express.Router();
 
 // ==========================================================
-// Import Controller
+// Import Controllers
 // ==========================================================
 
 const {
   handleGenerateNewShortURL,
+  handleGetAnalytics,
 } = require("../controllers/url");
 
 // ==========================================================
-// CREATE SHORT URL
-// ==========================================================
-// POST /url
+// POST - CREATE SHORT URL
 // ==========================================================
 
+// POST /url
 router.post("/", handleGenerateNewShortURL);
+
+// ==========================================================
+// GET - ANALYTICS PAGE
+// ==========================================================
+
+// GET /url/analytics/:shortId
+
+router.get(
+  "/analytics/:shortId",
+  handleGetAnalytics
+);
 
 // ==========================================================
 // Export Router

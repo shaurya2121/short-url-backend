@@ -1,89 +1,96 @@
 // ==========================================================
-// Import Required Packages
+// Import Nanoid
 // ==========================================================
 
-// nanoid is used to generate a unique short ID
 const { nanoid } = require("nanoid");
 
-// Import URL Model
+// Import URL model
 const URL = require("../models/url");
 
 // ==========================================================
 // CREATE SHORT URL
 // ==========================================================
-// Method : POST
-// URL    : /url
-//
-// Request Body:
-// {
-//   "url": "https://www.google.com"
-// }
-//
-// Response:
-// {
-//   "id": "aB12xYz9"
-// }
-// ==========================================================
 
 async function handleGenerateNewShortURL(req, res) {
   try {
-    // Get data from request body
     const body = req.body;
 
-    // ======================================================
-    // Validate URL
-    // ======================================================
-
+    // Check URL
     if (!body.url) {
       return res.status(400).json({
         error: "URL is required",
       });
     }
 
-    // ======================================================
-    // Generate Short ID
-    // ======================================================
+    // Generate unique short ID
+    const shortID = nanoid(8);
 
-    const shortId = nanoid(8);
-
-    // ======================================================
-    // Save URL in MongoDB
-    // ======================================================
-
-    await URL.create({
-      shortId: shortId,
+    // Create URL document
+    const result = await URL.create({
+      shortId: shortID,
       redirectURL: body.url,
       visitHistory: [],
     });
 
-    // ======================================================
-    // Send Response
-    // ======================================================
-
+    // Return response
     return res.status(201).json({
       success: true,
       message: "Short URL created successfully",
-      id: shortId,
+      id: result.shortId,
     });
 
-  } catch (err) {
-    // ======================================================
-    // Handle Errors
-    // ======================================================
+  } catch (error) {
 
-    console.log("Error creating short URL:", err);
+    console.log(error);
 
     return res.status(500).json({
       success: false,
-      error: "Internal Server Error",
+      error: "Something went wrong",
     });
   }
 }
 
 // ==========================================================
-// Export Controller
+// SHOW ANALYTICS PAGE
+// ==========================================================
+
+async function handleGetAnalytics(req, res) {
+
+  try {
+
+    const shortId = req.params.shortId;
+
+    const entry = await URL.findOne({
+      shortId,
+    });
+
+    // URL doesn't exist
+    if (!entry) {
+      return res.status(404).render("analytics", {
+        error: "Short URL not found",
+        entry: null,
+      });
+    }
+
+    // Render EJS page
+    return res.render("analytics", {
+      entry,
+      error: null,
+    });
+
+  } catch (error) {
+
+    console.log(error);
+
+    return res.status(500).send("Server Error");
+  }
+}
+
+// ==========================================================
+// EXPORT CONTROLLERS
 // ==========================================================
 
 module.exports = {
   handleGenerateNewShortURL,
+  handleGetAnalytics,
 };

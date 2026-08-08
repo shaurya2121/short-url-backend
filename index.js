@@ -2,17 +2,19 @@
 // Import Required Packages
 // ==========================================================
 
-// Express Framework
 const express = require("express");
+const path = require("path");
 
-// URL Model
-const URL = require("./models/url");
-
-// MongoDB connection function
-const { connectToMongoDb } = require("./connect");
+// MongoDB connection
+const {
+  connectToMongoDb,
+} = require("./connect");
 
 // URL routes
 const urlRoute = require("./routes/url");
+
+// URL model
+const URL = require("./models/url");
 
 // ==========================================================
 // Create Express Application
@@ -20,53 +22,162 @@ const urlRoute = require("./routes/url");
 
 const app = express();
 
-// Port number
+// Port
 const PORT = 8001;
 
 // ==========================================================
 // Middleware
 // ==========================================================
 
-// Allows Express to read JSON data from req.body
+// Parse JSON
 app.use(express.json());
 
+// Parse HTML form data
+app.use(express.urlencoded({ extended: false }));
+
 // ==========================================================
-// Connect to MongoDB
+// EJS Configuration
 // ==========================================================
 
-connectToMongoDb("mongodb://127.0.0.1:27017/shortURL")
+// Tell Express that we are using EJS
+app.set("view engine", "ejs");
+
+// Tell Express where the views folder is
+app.set(
+  "views",
+  path.join(__dirname, "views")
+);
+
+// ==========================================================
+// Static Files
+// ==========================================================
+
+// CSS, images, JavaScript etc.
+app.use(
+  express.static(
+    path.join(__dirname, "public")
+  )
+);
+
+// ==========================================================
+// MongoDB Connection
+// ==========================================================
+
+connectToMongoDb(
+  "mongodb://127.0.0.1:27017/shortURL"
+)
   .then(() => {
-    console.log("MongoDB connected successfully");
+    console.log(
+      "MongoDB connected successfully"
+    );
   })
-  .catch((err) => {
-    console.log("MongoDB connection error:", err);
+  .catch((error) => {
+    console.log(
+      "MongoDB connection error:",
+      error
+    );
   });
 
 // ==========================================================
-// REDIRECT SHORT URL
+// HOME PAGE
 // ==========================================================
-//
+
+// GET /
+
+// EJS renders home.ejs on the server
+
+app.get("/", (req, res) => {
+
+  res.render("home", {
+    shortUrl: null,
+    error: null,
+  });
+
+});
+
+// ==========================================================
+// CREATE SHORT URL FROM EJS FORM
+// ==========================================================
+
+app.post("/create", async (req, res) => {
+
+  try {
+
+    const { url } = req.body;
+
+    // Validate URL
+    if (!url) {
+
+      return res.render("home", {
+        shortUrl: null,
+        error: "Please enter a URL",
+      });
+
+    }
+
+    // Generate short ID
+    const { nanoid } = require("nanoid");
+
+    const shortId = nanoid(8);
+
+    // Save in MongoDB
+    await URL.create({
+      shortId,
+      redirectURL: url,
+      visitHistory: [],
+    });
+
+    // Generate short URL
+    const shortUrl =
+      `http://localhost:${PORT}/${shortId}`;
+
+    // Render home page again
+    return res.render("home", {
+      shortUrl,
+      error: null,
+    });
+
+  } catch (error) {
+
+    console.log(error);
+
+    return res.render("home", {
+      shortUrl: null,
+      error: "Something went wrong",
+    });
+
+  }
+
+});
+
+// ==========================================================
+// API ROUTES
+// ==========================================================
+
+app.use("/url", urlRoute);
+
+// ==========================================================
+// SHORT URL REDIRECT
+// ==========================================================
+
 // Example:
 //
-// http://localhost:8001/abc12345
+// http://localhost:8001/AbCd1234
 //
-// This will:
-// 1. Find the short URL
-// 2. Add visit timestamp
-// 3. Redirect to original URL
-//
-// ==========================================================
+// This redirects to the original URL.
 
 app.get("/:shortId", async (req, res) => {
+
   try {
-    // Get short ID from URL
+
     const shortId = req.params.shortId;
 
-    // Find URL and update visit history
+    // Find URL and record visit
     const entry = await URL.findOneAndUpdate(
       {
-        shortId: shortId,
+        shortId,
       },
+
       {
         $push: {
           visitHistory: {
@@ -74,58 +185,44 @@ app.get("/:shortId", async (req, res) => {
           },
         },
       },
+
       {
         new: true,
       }
     );
 
-    // ======================================================
-    // Check if Short URL Exists
-    // ======================================================
-
+    // Short URL doesn't exist
     if (!entry) {
-      return res.status(404).json({
-        success: false,
-        message: "Short URL not found",
-      });
+      return res.status(404).send(
+        "Short URL not found"
+      );
     }
 
-    // ======================================================
-    // Redirect User
-    // ======================================================
+    // Redirect
+    return res.redirect(
+      entry.redirectURL
+    );
 
-    return res.redirect(entry.redirectURL);
+  } catch (error) {
 
-  } catch (err) {
-    console.log("Redirect error:", err);
+    console.log(error);
 
-    return res.status(500).json({
-      success: false,
-      message: "Internal Server Error",
-    });
+    return res.status(500).send(
+      "Server Error"
+    );
+
   }
+
 });
-
-// ==========================================================
-// URL API ROUTES
-// ==========================================================
-//
-// All routes inside routes/url.js will start with:
-//
-// /url
-//
-// Example:
-//
-// POST /url
-//
-// ==========================================================
-
-app.use("/url", urlRoute);
 
 // ==========================================================
 // START SERVER
 // ==========================================================
 
 app.listen(PORT, () => {
-  console.log(`Server started at http://localhost:${PORT}`);
+
+  console.log(
+    `Server started at http://localhost:${PORT}`
+  );
+
 });

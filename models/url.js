@@ -5,55 +5,25 @@
 const mongoose = require("mongoose");
 
 // ==========================================================
-// Create URL Schema
+// URL Schema
 // ==========================================================
 
 const urlSchema = new mongoose.Schema(
   {
-    // ======================================================
-    // Short ID
-    // ======================================================
-    // This is the unique ID generated for the shortened URL.
-    //
-    // Example:
-    // abc12345
-    // ======================================================
-
+    // Unique short ID
     shortId: {
       type: String,
       required: true,
       unique: true,
     },
 
-    // ======================================================
     // Original URL
-    // ======================================================
-    // This stores the actual URL where the user
-    // should be redirected.
-    //
-    // Example:
-    // https://www.google.com
-    // ======================================================
-
     redirectURL: {
       type: String,
       required: true,
     },
 
-    // ======================================================
-    // Visit History
-    // ======================================================
-    // Every time somebody uses the short URL,
-    // we store the timestamp of that visit.
-    //
-    // Example:
-    //
-    // visitHistory: [
-    //   { timestamp: 1754638200000 },
-    //   { timestamp: 1754638300000 }
-    // ]
-    // ======================================================
-
+    // Store every visit
     visitHistory: [
       {
         timestamp: {
@@ -63,23 +33,17 @@ const urlSchema = new mongoose.Schema(
     ],
   },
 
-  // ========================================================
-  // Automatically creates:
-  //
-  // createdAt
-  // updatedAt
-  // ========================================================
-
+  // Automatically creates createdAt and updatedAt
   {
     timestamps: true,
   }
 );
 
 // ==========================================================
-// Create MongoDB Model
+// Create Model
 // ==========================================================
 
-const URL = mongoose.model("url", urlSchema);
+const URL = mongoose.model("URL", urlSchema);
 
 // ==========================================================
 // Export Model

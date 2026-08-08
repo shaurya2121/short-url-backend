@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>ShortURL</title>
+
+    <link
+        rel="stylesheet"
+        href="/style.css"
+    >
+
+</head>
+
+<body>
+
+    <div class="container">
+
+        <h1>🔗 ShortURL</h1>
+
+        <p class="subtitle">
+            Make your long URLs short and easy to share
+        </p>
+
+        <!-- ==========================================
+             URL FORM
+        =========================================== -->
+
+        <form
+            action="/create"
+            method="POST"
+        >
+
+            <input
+                type="url"
+                name="url"
+                placeholder="https://example.com/very-long-url"
+                required
+            >
+
+            <button type="submit">
+                Shorten URL
+            </button>
+
+        </form>
+
+
+        <!-- ==========================================
+             ERROR
+        =========================================== -->
+
+        <% if (error) { %>
+
+            <div class="error">
+                <%= error %>
+            </div>
+
+        <% } %>
+
+
+        <!-- ==========================================
+             SHORT URL RESULT
+        =========================================== -->
+
+        <% if (shortUrl) { %>
+
+            <div class="result">
+
+                <h2>
+                    Your Short URL
+                </h2>
+
+                <a
+                    href="<%= shortUrl %>"
+                    target="_blank"
+                >
+                    <%= shortUrl %>
+                </a>
+
+                <br><br>
+
+                <a
+                    href="<%= shortUrl.replace('http://localhost:8001/', '/url/analytics/') %>"
+                >
+                    View Analytics
+                </a>
+
+            </div>
+
+        <% } %>
+
+    </div>
+
+</body>
+
+</html>
