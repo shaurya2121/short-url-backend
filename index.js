@@ -5,16 +5,35 @@
 const express = require("express");
 const path = require("path");
 
-// MongoDB connection
+// ==========================================================
+// Import MongoDB Connection
+// ==========================================================
+
 const {
   connectToMongoDb,
 } = require("./connect");
 
+// ==========================================================
+// Import Routes
+// ==========================================================
+
 // URL routes
 const urlRoute = require("./routes/url");
 
-// URL model
+// User authentication routes
+const userRoute = require("./routes/user");
+
+// ==========================================================
+// Import URL Model
+// ==========================================================
+
 const URL = require("./models/url");
+
+// ==========================================================
+// Import Nanoid
+// ==========================================================
+
+const { nanoid } = require("nanoid");
 
 // ==========================================================
 // Create Express Application
@@ -22,37 +41,68 @@ const URL = require("./models/url");
 
 const app = express();
 
-// Port
+// Port number
 const PORT = 8001;
 
 // ==========================================================
-// Middleware
+// MIDDLEWARE
 // ==========================================================
 
-// Parse JSON
+// Parse JSON request body
+//
+// Used when data is sent as JSON:
+//
+// {
+//   "url": "https://google.com"
+// }
+
 app.use(express.json());
 
-// Parse HTML form data
-app.use(express.urlencoded({ extended: false }));
+// ==========================================================
+// Parse HTML Form Data
+// ==========================================================
+//
+// Required for EJS forms:
+//
+// <form method="POST">
+//
+// This allows us to access:
+//
+// req.body.name
+// req.body.email
+// req.body.password
+// req.body.url
+//
+
+app.use(
+  express.urlencoded({
+    extended: false,
+  })
+);
 
 // ==========================================================
-// EJS Configuration
+// EJS CONFIGURATION
 // ==========================================================
 
-// Tell Express that we are using EJS
+// Tell Express to use EJS as the template engine
+
 app.set("view engine", "ejs");
 
-// Tell Express where the views folder is
+// Tell Express where EJS files are located
+
 app.set(
   "views",
   path.join(__dirname, "views")
 );
 
 // ==========================================================
-// Static Files
+// STATIC FILES
 // ==========================================================
+//
+// CSS, images and frontend JavaScript
+// will be inside the public folder.
+//
 
-// CSS, images, JavaScript etc.
 app.use(
   express.static(
     path.join(__dirname, "public")
@@ -60,7 +110,7 @@ app.use(
 );
 
 // ==========================================================
-// MongoDB Connection
+// CONNECT TO MONGODB
 // ==========================================================
 
 connectToMongoDb(
@@ -68,27 +118,47 @@ connectToMongoDb(
 )
   .then(() => {
     console.log(
-      "MongoDB connected successfully"
+      "✅ MongoDB connected successfully"
     );
   })
   .catch((error) => {
     console.log(
-      "MongoDB connection error:",
+      "❌ MongoDB connection error:",
       error
     );
   });
 
 // ==========================================================
+// USER ROUTES
+// ==========================================================
+//
+// All user authentication routes start with:
+//
+// /user
+//
+// Example:
+//
+// POST /user
+//
+// This will call:
+//
+// handleUserSignup()
+//
+
+app.use("/user", userRoute);
+
+// ==========================================================
 // HOME PAGE
 // ==========================================================
-
+//
 // GET /
-
-// EJS renders home.ejs on the server
+//
+// Displays home.ejs
+//
 
 app.get("/", (req, res) => {
 
-  res.render("home", {
+  return res.render("home", {
     shortUrl: null,
     error: null,
   });
@@ -96,54 +166,89 @@ app.get("/", (req, res) => {
 });
 
 // ==========================================================
-// CREATE SHORT URL FROM EJS FORM
+// CREATE SHORT URL
 // ==========================================================
+//
+// POST /create
+//
+// This route receives the URL from the EJS form
+// and creates a shortened URL.
+//
 
 app.post("/create", async (req, res) => {
 
   try {
 
+    // Get URL from form
+
     const { url } = req.body;
 
+    // ======================================================
     // Validate URL
+    // ======================================================
+
     if (!url) {
 
-      return res.render("home", {
+      return res.status(400).render("home", {
         shortUrl: null,
         error: "Please enter a URL",
       });
 
     }
 
-    // Generate short ID
-    const { nanoid } = require("nanoid");
+    // ======================================================
+    // Generate Short ID
+    // ======================================================
 
     const shortId = nanoid(8);
 
-    // Save in MongoDB
+    // ======================================================
+    // Save URL in MongoDB
+    // ======================================================
+
     await URL.create({
+
       shortId,
+
       redirectURL: url,
+
       visitHistory: [],
+
     });
 
-    // Generate short URL
+    // ======================================================
+    // Create Short URL
+    // ======================================================
+
     const shortUrl =
       `http://localhost:${PORT}/${shortId}`;
 
-    // Render home page again
+    // ======================================================
+    // Render Home Page
+    // ======================================================
+
     return res.render("home", {
+
       shortUrl,
+
       error: null,
+
     });
 
   } catch (error) {
 
-    console.log(error);
+    console.log(
+      "Create Short URL Error:",
+      error
+    );
 
-    return res.render("home", {
+    return res.status(500).render("home", {
+
       shortUrl: null,
-      error: "Something went wrong",
+
+      error:
+        "Something went wrong. Please try again.",
+
     });
 
   }
@@ -153,27 +258,47 @@ app.post("/create", async (req, res) => {
 // ==========================================================
 // API ROUTES
 // ==========================================================
+//
+// All URL API routes start with:
+//
+// /url
+//
+// Example:
+//
+// POST /url
+//
 
 app.use("/url", urlRoute);
 
 // ==========================================================
 // SHORT URL REDIRECT
 // ==========================================================
-
+//
 // Example:
 //
 // http://localhost:8001/AbCd1234
 //
-// This redirects to the original URL.
+// The server:
+//
+// 1. Finds the short URL
+// 2. Records the visit
+// 3. Redirects the user
+//
 
 app.get("/:shortId", async (req, res) => {
 
   try {
 
+    // Get short ID from URL
+
     const shortId = req.params.shortId;
 
-    // Find URL and record visit
+    // ======================================================
+    // Find URL and Record Visit
+    // ======================================================
+
     const entry = await URL.findOneAndUpdate(
+
       {
         shortId,
       },
@@ -189,23 +314,35 @@ app.get("/:shortId", async (req, res) => {
       {
         new: true,
       }
+
     );
 
-    // Short URL doesn't exist
+    // ======================================================
+    // Check If Short URL Exists
+    // ======================================================
+
     if (!entry) {
+
       return res.status(404).send(
         "Short URL not found"
       );
+
     }
 
-    // Redirect
+    // ======================================================
+    // Redirect User
+    // ======================================================
+
     return res.redirect(
       entry.redirectURL
     );
 
   } catch (error) {
 
-    console.log(error);
+    console.log(
+      "Redirect Error:",
+      error
+    );
 
     return res.status(500).send(
       "Server Error"
@@ -222,7 +359,7 @@ app.get("/:shortId", async (req, res) => {
 app.listen(PORT, () => {
 
   console.log(
-    `Server started at http://localhost:${PORT}`
+    `🚀 Server started at http://localhost:${PORT}`
   );
 
 });
